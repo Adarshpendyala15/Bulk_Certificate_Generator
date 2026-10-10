@@ -1,9 +1,17 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import './App.css'
 
 const sampleRecipients = [
   { name: 'Alice Example', email: 'alice@example.com', course_or_role: 'Python' },
   { name: 'Bob Example', email: 'bob@example.com', course_or_role: 'Machine Learning' },
+  { name: 'Catherine Lee', email: 'catherine@example.com', course_or_role: 'Data Science' },
+  { name: 'Daniel Green', email: 'daniel@example.com', course_or_role: 'UX Research' },
+  { name: 'Elena Clark', email: 'elena@example.com', course_or_role: 'Project Management' },
+  { name: 'Farah Ahmed', email: 'farah@example.com', course_or_role: 'Marketing' },
+  { name: 'George Patel', email: 'george@example.com', course_or_role: 'Cybersecurity' },
+  { name: 'Hannah Singh', email: 'hannah@example.com', course_or_role: 'Leadership' },
+  { name: 'Isaac Ortega', email: 'isaac@example.com', course_or_role: 'Business Analytics' },
+  { name: 'Julia Nguyen', email: 'julia@example.com', course_or_role: 'AI Fundamentals' },
 ]
 
 const emptyRecipient = { name: '', email: '', course_or_role: '' }
@@ -16,6 +24,11 @@ function App() {
   const [errorMessage, setErrorMessage] = useState('')
   const [job, setJob] = useState(null)
   const [poller, setPoller] = useState(null)
+
+  const validRecipientCount = useMemo(
+    () => recipients.filter((recipient) => recipient.name || recipient.email || recipient.course_or_role).length,
+    [recipients],
+  )
 
   const apiFetch = async (url, options = {}) => {
     const response = await fetch(url, {
@@ -92,17 +105,24 @@ function App() {
     event.preventDefault()
     setErrorMessage('')
 
+    const nextRecipients = recipients
+      .filter((recipient) => recipient.name || recipient.email || recipient.course_or_role)
+      .map((recipient) => ({
+        name: recipient.name.trim(),
+        email: recipient.email.trim(),
+        course_or_role: recipient.course_or_role.trim() || null,
+      }))
+
+    if (!nextRecipients.length) {
+      setErrorMessage('Add at least one recipient before generating certificates.')
+      return
+    }
+
     const payload = {
       event_name: eventName.trim(),
       issuer_name: issuerName.trim(),
       issue_date: issueDate || undefined,
-      recipients: recipients
-        .filter((recipient) => recipient.name || recipient.email || recipient.course_or_role)
-        .map((recipient) => ({
-          name: recipient.name.trim(),
-          email: recipient.email.trim(),
-          course_or_role: recipient.course_or_role.trim() || null,
-        })),
+      recipients: nextRecipients,
     }
 
     try {
@@ -151,20 +171,48 @@ function App() {
 
   return (
     <div className="page-shell">
+      <div className="bg-orb orb-one" />
+      <div className="bg-orb orb-two" />
+
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Operations</p>
+        <div className="brand-block">
+          <p className="eyebrow">Operations Suite</p>
           <h1>Bulk Certificate Generator</h1>
         </div>
-        <button type="button" className="secondary-btn" onClick={loadSample}>
-          Load sample
-        </button>
+
+        <div className="header-actions">
+          <div className="live-pill">
+            <span className="pulse-dot" />
+            {job ? statusLabel(job.status) : 'READY'}
+          </div>
+          <button type="button" className="secondary-btn" onClick={loadSample}>
+            Load sample
+          </button>
+        </div>
       </header>
 
+      <section className="summary-strip">
+        <div className="summary-card">
+          <span>Total recipients</span>
+          <strong>{job ? job.total_count ?? 0 : recipients.length}</strong>
+        </div>
+        <div className="summary-card">
+          <span>Ready to issue</span>
+          <strong>{job ? job.succeeded_count ?? 0 : validRecipientCount}</strong>
+        </div>
+        <div className="summary-card">
+          <span>Current status</span>
+          <strong>{job ? statusLabel(job.status) : 'PENDING'}</strong>
+        </div>
+      </section>
+
       <main className="layout-grid">
-        <section className="panel">
+        <section className="panel form-panel">
           <div className="panel-header">
-            <h2>Job setup</h2>
+            <div>
+              <h2>Campaign setup</h2>
+              <p>Build a clean certificate batch and publish it in one click.</p>
+            </div>
           </div>
 
           <form onSubmit={handleSubmit} className="job-form">
@@ -186,7 +234,9 @@ function App() {
 
             <div className="recipient-toolbar">
               <h3>Recipients</h3>
-              <button type="button" className="secondary-btn" onClick={addRecipient}>Add recipient</button>
+              <button type="button" className="secondary-btn" onClick={addRecipient}>
+                Add recipient
+              </button>
             </div>
 
             <div className="recipient-list">
@@ -228,14 +278,18 @@ function App() {
             {errorMessage && <div className="error-box">{errorMessage}</div>}
 
             <div className="submit-row">
-              <button type="submit" className="primary-btn">Create job</button>
-              <button type="button" className="secondary-btn" onClick={refreshJob}>Refresh status</button>
+              <button type="submit" className="primary-btn">
+                Create job
+              </button>
+              <button type="button" className="secondary-btn" onClick={refreshJob}>
+                Refresh status
+              </button>
             </div>
           </form>
         </section>
 
-        <aside className="panel">
-          <div className="panel-header">
+        <aside className="panel status-panel">
+          <div className="panel-header compact">
             <h2>Job status</h2>
           </div>
 
@@ -248,10 +302,22 @@ function App() {
             {job && (
               <>
                 <div className="stats-grid">
-                  <div><span>Total</span><strong>{job.total_count || 0}</strong></div>
-                  <div><span>Success</span><strong>{job.succeeded_count || 0}</strong></div>
-                  <div><span>Failed</span><strong>{job.failed_count || 0}</strong></div>
-                  <div><span>Pending</span><strong>{job.pending_count || 0}</strong></div>
+                  <div>
+                    <span>Total</span>
+                    <strong>{job.total_count || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Success</span>
+                    <strong>{job.succeeded_count || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Failed</span>
+                    <strong>{job.failed_count || 0}</strong>
+                  </div>
+                  <div>
+                    <span>Pending</span>
+                    <strong>{job.pending_count || 0}</strong>
+                  </div>
                 </div>
 
                 <div className="progress-row">
@@ -263,7 +329,11 @@ function App() {
                 </div>
 
                 {job.status !== 'FAILED' && (
-                  <button type="button" className="secondary-btn wide" onClick={() => window.open(`/api/v1/jobs/${job.job_id}/download`, '_blank')}>
+                  <button
+                    type="button"
+                    className="secondary-btn wide"
+                    onClick={() => window.open(`/api/v1/jobs/${job.job_id}/download`, '_blank')}
+                  >
                     Download ZIP
                   </button>
                 )}
@@ -292,7 +362,9 @@ function App() {
             <tbody>
               {!job || !job.certificates?.length ? (
                 <tr>
-                  <td colSpan="5" className="empty-state">No certificates generated yet.</td>
+                  <td colSpan="5" className="empty-state">
+                    No certificates generated yet.
+                  </td>
                 </tr>
               ) : (
                 job.certificates.map((certificate) => (
