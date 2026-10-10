@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bulk Certificate Generator</title>
+    <style>
+      :root {
+        --bg: #f5f7fb;
+        --card: #ffffff;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --primary: #2563eb;
+        --primary-soft: #dbeafe;
+        --success: #168f55;
+        --warning: #d97706;
+        --danger: #dc2626;
+        --border: #e5e7eb;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Arial, Helvetica, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 32px 20px 60px;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 2rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 20px;
+      }
+
+      .panel {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+      }
+
+      .panel-body {
+        padding: 20px;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      label {
+        display: block;
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+        font-weight: 600;
+      }
+
+      input, textarea, button {
+        width: 100%;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 10px 12px;
+        font-size: 1rem;
+      }
+
+      input, textarea {
+        background: #fff;
+      }
+
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+
+      button {
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      button.secondary {
+        background: var(--primary-soft);
+        color: var(--primary);
+      }
+
+      button:hover { opacity: 0.96; }
+
+      .section-title {
+        margin: 0 0 16px;
+        font-size: 1.2rem;
+      }
+
+      .recipients-list {
+        margin-top: 20px;
+        display: grid;
+        gap: 12px;
+      }
+
+      .recipient-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fafbff;
+      }
+
+      .recipient-item .row {
+        display: grid;
+        grid-template-columns: 1.1fr 1.1fr 1fr;
+        gap: 10px;
+      }
+
+      .status-box {
+        padding: 20px;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #eff6ff, #f8fafc);
+        border: 1px solid var(--border);
+      }
+
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(100px, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
+      .pill.success { background: #dcfce7; color: var(--success); }
+      .pill.warning { background: #fef3c7; color: var(--warning); }
+      .pill.danger { background: #fee2e2; color: var(--danger); }
+
+      .job-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .summary-box {
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 10px;
+      }
+
+      .summary-box strong {
+        display: block;
+        font-size: 1.2rem;
+        margin-top: 6px;
+      }
+
+      .table-wrap {
+        max-height: 420px;
+        overflow: auto;
+        margin-top: 18px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 10px 8px;
+        border-bottom: 1px solid var(--border);
+        vertical-align: top;
+        font-size: 0.92rem;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        background: #fff;
+      }
+
+      .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .actions a {
+        text-decoration: none;
+        color: var(--primary);
+        font-weight: 600;
+      }
+
+      .hidden { display: none !important; }
+      .error {
+        color: var(--danger);
+        font-size: 0.9rem;
+        min-height: 20px;
+      }
+
+      @media (max-width: 900px) {
+        .grid { grid-template-columns: 1fr; }
+        .form-row, .recipient-item .row, .job-summary { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Bulk Certificate Generator</h1>
+        <button id="healthCheck" class="secondary">Check API</button>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <div class="panel-body">
+            <h2 class="section-title">Create a job</h2>
+
+            <div class="form-row">
+              <div>
+                <label>Event name</label>
+                <input id="eventName" value="Summer Bootcamp" />
+              </div>
+              <div>
+                <label>Issuer name</label>
+                <input id="issuerName" value="Acme Education" />
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top: 12px;">
+              <div>
+                <label>Issue date</label>
+                <input id="issueDate" type="date" />
+              </div>
+              <div>
+                <label>&nbsp;</label>
+                <button id="addRecipient">Add recipient</button>
+              </div>
+            </div>
+
+            <div class="recipients-list" id="recipientsList"></div>
+
+            <div style="margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <button id="submitJob">Create job</button>
+              <button id="loadSample" class="secondary">Load sample</button>
+            </div>
+
+            <div id="formError" class="error" style="margin-top: 10px;"></div>
+          </div>
+        </section>
+
+        <aside class="panel">
+          <div class="panel-body">
+            <h2 class="section-title">Status</h2>
+            <div class="status-box">
+              <div id="jobMeta">No job selected</div>
+              <div class="status-grid">
+                <div>
+                  <div class="pill" id="statusPill">PENDING</div>
+                </div>
+                <div>
+                  <div>Progress: <strong id="progressValue">0%</strong></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="job-summary">
+              <div class="summary-box">
+                Total
+                <strong id="totalCount">0</strong>
+              </div>
+              <div class="summary-box">
+                Success
+                <strong id="successCount">0</strong>
+              </div>
+              <div class="summary-box">
+                Failed
+                <strong id="failedCount">0</strong>
+              </div>
+              <div class="summary-box">
+                Pending
+                <strong id="pendingCount">0</strong>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;">
+              <button id="refreshJob" class="secondary">Refresh</button>
+              <button id="downloadZip" class="secondary">Download ZIP</button>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      <section class="panel" style="margin-top: 20px;">
+        <div class="panel-body">
+          <h2 class="section-title">Certificates</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Message</th>
+                  <th>Download</th>
+                </tr>
+              </thead>
+              <tbody id="certificateTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      const defaultRecipients = [
+        { name: 'Alice Example', email: 'alice@example.com', course_or_role: 'Python' },
+        { name: 'Bob Example', email: 'bob@example.com', course_or_role: 'Machine Learning' }
+      ];
+
+      const state = {
+        currentJobId: null,
+        polling: null
+      };
+
+      const els = {
+        eventName: document.getElementById('eventName'),
+        issuerName: document.getElementById('issuerName'),
+        issueDate: document.getElementById('issueDate'),
+        recipientsList: document.getElementById('recipientsList'),
+        submitJob: document.getElementById('submitJob'),
+        addRecipient: document.getElementById('addRecipient'),
+        formError: document.getElementById('formError'),
+        jobMeta: document.getElementById('jobMeta'),
+        statusPill: document.getElementById('statusPill'),
+        progressValue: document.getElementById('progressValue'),
+        totalCount: document.getElementById('totalCount'),
+        successCount: document.getElementById('successCount'),
+        failedCount: document.getElementById('failedCount'),
+        pendingCount: document.getElementById('pendingCount'),
+        refreshJob: document.getElementById('refreshJob'),
+        downloadZip: document.getElementById('downloadZip'),
+        certificateTable: document.getElementById('certificateTable'),
+        healthCheck: document.getElementById('healthCheck'),
+        loadSample: document.getElementById('loadSample')
+      };
+
+      function createRecipientRow(item = {}) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'recipient-item';
+        wrapper.innerHTML = `
+          <div class="row">
+            <div>
+              <label>Name</label>
+              <input value="${item.name || ''}" data-field="name" />
+            </div>
+            <div>
+              <label>Email</label>
+              <input value="${item.email || ''}" data-field="email" />
+            </div>
+            <div>
+              <label>Course / role</label>
+              <input value="${item.course_or_role || ''}" data-field="course_or_role" />
+            </div>
+          </div>
+        `;
+        return wrapper;
+      }
+
+      function renderRecipients(items) {
+        els.recipientsList.innerHTML = '';
+        if (!items.length) {
+          items.push({ name: '', email: '', course_or_role: '' });
+        }
+        items.forEach((item) => {
+          els.recipientsList.appendChild(createRecipientRow(item));
+        });
+      }
+
+      function collectRecipients() {
+        const rows = Array.from(document.querySelectorAll('.recipient-item'));
+        const recipients = rows.map((row) => {
+          const fields = row.querySelectorAll('input');
+          const payload = {};
+          fields.forEach((field) => {
+            const key = field.dataset.field;
+            payload[key] = field.value.trim();
+          });
+          return payload;
+        }).filter((item) => item.name || item.email || item.course_or_role);
+
+        return recipients;
+      }
+
+      function setError(message) {
+        els.formError.textContent = message || '';
+      }
+
+      function updateStatusPill(status) {
+        const normal = (status || 'PENDING').toUpperCase();
+        els.statusPill.textContent = normal;
+        els.statusPill.className = 'pill';
+        if (normal === 'COMPLETED') els.statusPill.classList.add('success');
+        else if (normal === 'COMPLETED_WITH_ERRORS' || normal === 'PROCESSING') els.statusPill.classList.add('warning');
+        else if (normal === 'FAILED') els.statusPill.classList.add('danger');
+      }
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+          ...options
+        });
+
+        const text = await response.text();
+        let payload = null;
+        try { payload = text ? JSON.parse(text) : null; } catch { payload = text; }
+
+        if (!response.ok) {
+          const detail = payload && payload.detail ? payload.detail : 'Request failed';
+          throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+        }
+
+        return payload;
+      }
+
+      function renderTable(certificates) {
+        els.certificateTable.innerHTML = '';
+        if (!certificates || !certificates.length) {
+          els.certificateTable.innerHTML = '<tr><td colspan="5">No certificates available yet.</td></tr>';
+          return;
+        }
+
+        certificates.forEach((certificate) => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${certificate.recipient_name || ''}</td>
+            <td>${certificate.recipient_email || ''}</td>
+            <td><span class="pill ${certificate.status === 'SUCCESS' ? 'success' : certificate.status === 'FAILED' ? 'danger' : 'warning'}">${certificate.status}</span></td>
+            <td>${certificate.error_message || '-'}</td>
+            <td>${certificate.download_url ? '<a href="' + certificate.download_url + '" target="_blank">Download</a>' : '-'}</td>
+          `;
+          els.certificateTable.appendChild(row);
+        });
+      }
+
+      function updateJobView(data) {
+        if (!data) return;
+        state.currentJobId = data.job_id;
+        updateStatusPill(data.status);
+        els.jobMeta.textContent = `Job ${data.job_id.substring(0, 8)} • ${data.event_name || 'N/A'}`;
+        els.progressValue.textContent = `${Number(data.progress_percentage || 0).toFixed(0)}%`;
+        els.totalCount.textContent = data.total_count || 0;
+        els.successCount.textContent = data.succeeded_count || 0;
+        els.failedCount.textContent = data.failed_count || 0;
+        els.pendingCount.textContent = data.pending_count || 0;
+        renderTable(data.certificates || []);
+      }
+
+      async function refreshJob() {
+        if (!state.currentJobId) {
+          return;
+        }
+        try {
+          const data = await api(`/api/v1/jobs/${state.currentJobId}?limit=100`);
+          updateJobView(data);
+          if (['PENDING', 'PROCESSING'].includes((data.status || '').toUpperCase())) {
+            clearInterval(state.polling);
+            state.polling = setInterval(refreshJob, 1500);
+          } else {
+            clearInterval(state.polling);
+          }
+        } catch (error) {
+          setError(error.message);
+        }
+      }
+
+      async function createJob() {
+        const payload = {
+          event_name: els.eventName.value.trim(),
+          issuer_name: els.issuerName.value.trim(),
+          issue_date: els.issueDate.value || undefined,
+          recipients: collectRecipients()
+        };
+
+        try {
+          setError('');
+          const job = await api('/api/v1/jobs', { method: 'POST', body: JSON.stringify(payload) });
+          state.currentJobId = job.job_id;
+          clearInterval(state.polling);
+          state.polling = setInterval(refreshJob, 1500);
+          await refreshJob();
+        } catch (error) {
+          setError(error.message);
+        }
+      }
+
+      async function healthCheck() {
+        try {
+          const value = await api('/health');
+          setError('');
+          window.alert(`API status: ${value.status}`);
+        } catch (error) {
+          window.alert(error.message);
+        }
+      }
+
+      async function downloadZip() {
+        if (!state.currentJobId) {
+          window.alert('Create or select a job first.');
+          return;
+        }
+        window.open(`/api/v1/jobs/${state.currentJobId}/download`, '_blank');
+      }
+
+      function loadSample() {
+        els.eventName.value = 'Summer Bootcamp';
+        els.issuerName.value = 'Acme Education';
+        els.issueDate.value = new Date().toISOString().slice(0, 10);
+        renderRecipients(defaultRecipients);
+      }
+
+      els.addRecipient.addEventListener('click', () => {
+        const current = collectRecipients();
+        current.push({ name: '', email: '', course_or_role: '' });
+        renderRecipients(current);
+      });
+
+      els.submitJob.addEventListener('click', createJob);
+      els.refreshJob.addEventListener('click', refreshJob);
+      els.downloadZip.addEventListener('click', downloadZip);
+      els.healthCheck.addEventListener('click', healthCheck);
+      els.loadSample.addEventListener('click', loadSample);
+
+      loadSample();
+    </script>
+  </body>
+</html>

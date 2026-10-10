@@ -1,0 +1,24 @@
+{
+  "name": "bulk-certificate-generator",
+  "version": "1.0.0",
+  "description": "Node.js backend for the bulk certificate generator",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "certificates",
+    "express",
+    "node"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "adm-zip": "^0.5.16",
+    "better-sqlite3": "^11.7.0",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "pdfkit": "^0.15.2"
+  }
+}
